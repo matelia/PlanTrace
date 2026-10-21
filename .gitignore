@@ -1,0 +1,65 @@
+# ---------------------------------------------------------------------------
+# PlanTrace never commits plans or anything made from them.
+# ---------------------------------------------------------------------------
+
+# Project data: scans, staged images, geodatabases, manifests, check pictures,
+# overlays, OCR text. Everything a project produces lives under projects\.
+projects/
+
+# Plans and scans anywhere else (input folders, sample_data, stray copies)
+*.pdf
+*.tif
+*.tiff
+*.tfw
+*.jgw
+*.pgw
+*.jpg
+*.jpeg
+*.png
+*.plantrace.json
+plan_manifest.csv
+plan_text/
+staged_plans/
+raw_plans/
+placement_check/
+plan_overlays/
+
+# ArcGIS Pro project files and caches
+*.aprx
+*.atbx
+*.gdb/
+*.lock
+*.aux.xml
+*.ovr
+*.pyt.xml
+.backups/
+Index/
+GpMessages/
+ImportLog/
+*_backup_*.aprx
+
+# Local AI model weights (Ollama keeps its own; never commit any)
+*.gguf
+*.safetensors
+*.bin
+models/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+env/
+.env
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
+# Allow the README in sample_data even though most file types there are ignored
+!sample_data/README.md
+# Allow screenshots/GIFs for the README (made from public or synthetic data only)
+!docs/images/
+!docs/images/**
