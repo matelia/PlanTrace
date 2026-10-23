@@ -12,6 +12,7 @@ Before design starts, a highway engineer collects record plans from every utilit
 PlanTrace does that first placement:
 
 1. **Reads each sheet locally**: street names, scale, stationing, dates, map numbers. It uses **Tesseract OCR**, plus an optional local vision model through **Ollama** for hand-lettered sheets.
+   It also reads **datum notes** (NAD 27 / NAD 83, State Plane, UTM, NGVD 29 / NAVD 88) and each PDF's **file properties** (scan, CAD plot, GIS export, email print). If a sheet has **grid-tick coordinates**, it's placed from those, and the datum is worked out even when the sheet doesn't name it: each candidate system is tried (NAD 27 converted with NADCON), and the one that lands in the project area wins.
 2. **Finds where the sheet is** from the streets named on it that cross each other, using public street centerline data.
 3. **Places it in ArcGIS Pro**: a Python script fits the sheet's road lines onto the streets (scale, rotation, position), fine-tunes them against the aerial photo, and writes the position into the image so it opens already in place.
 4. **Builds a review map**: aerial photo, streets, and every sheet's linework in see-through magenta, each labelled good / check / poor.
@@ -50,6 +51,7 @@ In the Python Command Prompt, from the PlanTrace folder:
 2. Copy the plan PDFs or scans into `projects\<PROJECT_NAME>\raw_plans\`, then run `python scripts\02_intake_plans.py`. It converts every page to an image and lists them in `plan_manifest.csv`.
 3. `python scripts\04_get_streets.py`: downloads street centerlines for the search area.
 4. `python scripts\05_read_plans.py`: reads every page. With the vision model this is best run overnight; it can be stopped and resumed.
+   Then `python scripts\05b_find_datum.py`: reads each PDF's file properties, datum notes on the sheets, and coordinate labels. A sheet with grid ticks is placed directly from its own coordinates.
 5. `python scripts\06_locate_plans.py`: suggests where each sheet goes.
 6. `python scripts\07_place_plans.py`: places every sheet and fine-tunes it against the aerial.
 7. `python scripts\08_make_review_map.py` (with ArcGIS Pro closed): adds a **Placement Review** map to your ArcGIS project.
@@ -108,6 +110,7 @@ plantrace\             the shared code:
   vision.py              local vision model client (Ollama)
   locate.py              location from street crossings
   hints.py               map numbers, stationing, neighbouring pages
+  datum.py               file properties, datum notes, placement from coordinate labels
   place.py               line finding; scale/rotation/position search
   refine.py              fine-tuning against the aerial photo
   georef.py              writing positions into images; georeferenced PDFs

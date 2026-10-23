@@ -141,18 +141,21 @@ def _unrotate(x, y, rot, w, h, w2, h2):
 WORDS_MAX_PIXELS = 20_000_000
 
 
-def word_positions(image_path, tesseract_exe=DEFAULT_TESSERACT):
+def word_positions(image_path, tesseract_exe=DEFAULT_TESSERACT, max_pixels=None):
     """Every confidently read word on the page with WHERE it is.
 
     Reads the page at 0, 90 and 270 degrees (street names run along their
     roads, so they're printed at all angles), with long ruled lines erased.
+    max_pixels: shrink bigger pages to about this size first (default
+    WORDS_MAX_PIXELS; larger = slower but catches smaller text).
     Returns a list of [text, x, y] with x, y in pixels of the FULL-size
     image (x right, y down)."""
+    max_pixels = max_pixels or WORDS_MAX_PIXELS
     gray = load_gray(image_path)
     with Image.open(image_path) as im:
         full_w, full_h = im.size
-    if gray.width * gray.height > WORDS_MAX_PIXELS:
-        f = (WORDS_MAX_PIXELS / (gray.width * gray.height)) ** 0.5
+    if gray.width * gray.height > max_pixels:
+        f = (max_pixels / (gray.width * gray.height)) ** 0.5
         gray = gray.resize((int(gray.width * f), int(gray.height * f)), Image.LANCZOS)
     back = full_w / gray.width
     gray = remove_long_lines(gray, max(40, int(min(gray.size) / 40)))

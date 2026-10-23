@@ -47,7 +47,8 @@ OVERLAY_MAX_WIDTH = 12000
 # Sheets at a smaller scale than this (feet per inch) are index maps.
 INDEX_MAP_FT_PER_IN = 200
 ORTHO_URL = config.ORTHO_SERVICE_URL
-STATUS_COLOURS = {"from PDF": [0, 110, 255, 100], "good": [0, 170, 0, 100],
+STATUS_COLOURS = {"from PDF": [0, 110, 255, 100], "from coordinates": [140, 70, 255, 100],
+                  "good": [0, 170, 0, 100],
                   "check": [255, 140, 0, 100], "poor": [220, 0, 0, 100]}
 
 
@@ -218,7 +219,7 @@ def main(aprx=None):
     def add_grouped(paths, prefix, visible, transparency):
         """One group per place_status, each sheet a layer inside it."""
         groups = {}
-        for st in ("index maps", "poor", "check", "good", "from PDF"):
+        for st in ("index maps", "poor", "check", "good", "from coordinates", "from PDF"):
             groups[st] = m.createGroupLayer("{} - {}".format(prefix, st))
             # index maps cover a mile; their lettering swamps everything else
             groups[st].visible = st != "index maps"

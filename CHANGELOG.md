@@ -2,6 +2,16 @@
 
 All notable changes to PlanTrace. A new entry is added whenever a working step is finished.
 
+## Unreleased (v0.2.0)
+
+- **Datum, coordinates and file properties** (new step 05b, `plantrace/datum.py`):
+  - Reads each PDF's file properties: which program made it (scan, CAD plot, GIS export, email or office print) and when.
+  - Reads datum notes on the sheet: NAD 27 / NAD 83, State Plane or UTM, NGVD 29 / NAVD 88, benchmarks.
+  - Reads grid-tick and coordinate labels with their position on the page. With enough labels, the sheet is placed from its own coordinates: each system in `config.COORDINATE_SYSTEMS` is tried (NAD 27 converted to NAD 83 with NADCON), and the one that lands in the project area is the datum, even when the sheet doesn't name it.
+  - On the test project, a sewer plan with no datum written was found to be in NAD 27 State Plane and placed from its coordinates (it had been placed wrong by line fitting).
+- Placement priority: the PDF's own georeferencing, then the sheet's coordinates, then fitting to the streets. New review-map group "from coordinates".
+- Safer review data: the footprint layer is rebuilt under a temporary name and swapped in only when complete, and review verdicts are backed up to `review_backup.csv` before every rebuild.
+
 ## v0.1.0 — first public version
 
 What works today:

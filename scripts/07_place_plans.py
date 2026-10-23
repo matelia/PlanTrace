@@ -315,6 +315,16 @@ def pdf_georef(row, image):
                                   config.SPATIAL_REFERENCE_WKID, config.PDF_DPI)
 
 
+def coordinate_placement(pid):
+    """The placement step 05b worked out from the sheet's own coordinate
+    labels (plan_text\\<plan_id>.datum.json), or None."""
+    path = os.path.join(config.PLAN_TEXT_DIR, pid + ".datum.json")
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8") as f:
+        return json.load(f).get("placement")
+
+
 def fine_tune(lines, wf, info, free_scale=False):
     """Fine-tune a placement against the aerial photo (plantrace/refine.py).
     Returns the improved placement, or the same one if there's no clear
@@ -464,22 +474,54 @@ def add_review_fields(fc):
         arcpy.management.AddField(fc, "review_note", "TEXT", field_length=250)
 
 
+REVIEW_BACKUP = os.path.join(config.PROJECT_DIR, "review_backup.csv")
+
+
+def read_reviews(fc):
+    """Your verdicts: from the footprint layer, plus any in the backup file
+    that the layer doesn't have (e.g. after a failed rebuild).
+    Returns {plan_id: (review, review_note)}."""
+    reviews = {}
+    if os.path.exists(REVIEW_BACKUP):
+        with open(REVIEW_BACKUP, newline="", encoding="utf-8") as f:
+            for r in csv.DictReader(f):  # later lines are newer
+                if r.get("review") or r.get("review_note"):
+                    reviews[r["plan_id"]] = (r.get("review", ""), r.get("review_note", ""))
+    if arcpy.Exists(fc) and "review" in [f.name for f in arcpy.ListFields(fc)]:
+        for pid, review, note in arcpy.da.SearchCursor(fc, ["plan_id", "review", "review_note"]):
+            if review or note:
+                reviews[pid] = (review or "", note or "")
+    return reviews
+
+
+def backup_reviews(reviews):
+    """Append the current verdicts to review_backup.csv (never overwritten)."""
+    new_file = not os.path.exists(REVIEW_BACKUP)
+    with open(REVIEW_BACKUP, "a", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        if new_file:
+            w.writerow(["saved", "plan_id", "review", "review_note"])
+        stamp = time.strftime("%Y-%m-%d %H:%M")
+        for pid, (review, note) in sorted(reviews.items()):
+            w.writerow([stamp, pid, review, note])
+
+
 def rebuild_footprints(rows, sr, placed_now):
     """Redraw PlanFootprints from the per-sheet records (<image>.plantrace.json),
     which are saved as each sheet is placed, so a stopped run loses nothing.
-    Your review verdicts are carried over. Sheets you've georeferenced
-    yourself are left out (their record no longer matches the world file).
-    Returns the feature class path."""
+    Your review verdicts are carried over, and backed up to review_backup.csv
+    first. The new layer is built under a temporary name and only swapped in
+    once it's complete, so a failure can't wipe the old one. Sheets you've
+    georeferenced yourself are left out (their record no longer matches the
+    world file). Returns the feature class path."""
     fc = os.path.join(config.GDB_PATH, FOOTPRINTS_FC_NAME)
-    reviews = {}
-    if arcpy.Exists(fc) and "review" in [f.name for f in arcpy.ListFields(fc)]:
-        reviews = {r[0]: (r[1] or "", r[2] or "")
-                   for r in arcpy.da.SearchCursor(fc, ["plan_id", "review", "review_note"])
-                   if r[1] or r[2]}
-    make_footprints_fc(sr)
+    reviews = read_reviews(fc)
+    if reviews:
+        backup_reviews(reviews)
+    tmp = make_footprints_fc(sr, FOOTPRINTS_FC_NAME + "_new")
     fields = ["SHAPE@", "plan_id", "source_file", "place_status", "match_score",
               "scale_ft_per_in", "rotation_deg", "review", "review_note"]
-    with arcpy.da.InsertCursor(fc, fields) as cur:
+    with arcpy.da.InsertCursor(tmp, fields) as cur:
         for row in rows:
             image = os.path.join(config.STAGED_PLANS_DIR, row.get("staged_image", ""))
             marker = image + ".plantrace.json"
@@ -500,22 +542,28 @@ def rebuild_footprints(rows, sr, placed_now):
             review, note = reviews.get(pid, ("", ""))
             if review and pid in placed_now:  # placed again since you reviewed it
                 note = ("placed again {}; re-check. ".format(time.strftime("%Y-%m-%d")) + note)[:250]
-            cur.insertRow([poly, pid, row.get("source_file", ""), rec.get("status", ""),
+            cur.insertRow([poly, pid, row.get("source_file", ""), rec.get("status", "")[:STATUS_LEN],
                            round(rec.get("score") or 0, 3), round(rec.get("scale_ft_per_in") or 0, 1),
                            round(rec.get("rotation_deg") or 0, 1), review, note])
+    # complete: swap it in
+    if arcpy.Exists(fc):
+        arcpy.management.Delete(fc)
+    arcpy.management.Rename(tmp, fc)
     return fc
 
 
-def make_footprints_fc(sr):
-    fc = os.path.join(config.GDB_PATH, FOOTPRINTS_FC_NAME)
+STATUS_LEN = 20
+
+
+def make_footprints_fc(sr, name=FOOTPRINTS_FC_NAME):
+    fc = os.path.join(config.GDB_PATH, name)
     if arcpy.Exists(fc):
         arcpy.management.Delete(fc)
-    arcpy.management.CreateFeatureclass(config.GDB_PATH, FOOTPRINTS_FC_NAME, "POLYGON",
-                                        spatial_reference=sr)
-    for name, length in [("plan_id", 150), ("source_file", 200), ("place_status", 10)]:
-        arcpy.management.AddField(fc, name, "TEXT", field_length=length)
-    for name in ["match_score", "scale_ft_per_in", "rotation_deg"]:
-        arcpy.management.AddField(fc, name, "DOUBLE")
+    arcpy.management.CreateFeatureclass(config.GDB_PATH, name, "POLYGON", spatial_reference=sr)
+    for field, length in [("plan_id", 150), ("source_file", 200), ("place_status", STATUS_LEN)]:
+        arcpy.management.AddField(fc, field, "TEXT", field_length=length)
+    for field in ["match_score", "scale_ft_per_in", "rotation_deg"]:
+        arcpy.management.AddField(fc, field, "DOUBLE")
     add_review_fields(fc)
     return fc
 
@@ -590,6 +638,29 @@ def main():
             for path in (tfw, image + ".plantrace.json"):  # our own earlier attempt, if any
                 if os.path.exists(path):
                     os.remove(path)
+            save_manifest(rows, columns)
+            continue
+        # The sheet's own coordinate labels (step 05b) beat fitting it to the
+        # streets. Fine-tuned against the aerial; scale is kept.
+        coords = coordinate_placement(pid) if not pdf_wf else None
+        if coords:
+            print("     placing from its own coordinate labels ({})".format(coords["system"]))
+            lines = place.plan_lines(image, dpi=config.PDF_DPI, skew=result.get("skew"))
+            info = {"plan_id": pid, "status": "from coordinates",
+                    "source": "coordinate labels on the sheet, {}".format(coords["system"]),
+                    "coordinate_fit_rms_ft": coords["fit_rms"]}
+            wf = fine_tune(lines, coords["world_file"], info)
+            a, d = wf[0], wf[1]
+            ft_per_in = math.hypot(a, d) * lines.dpi
+            rotation = math.degrees(math.atan2(d, a))
+            info.update({"scale_ft_per_in": ft_per_in, "rotation_deg": rotation})
+            row.update({"place_status": "from coordinates", "place_score": "",
+                        "place_scale_ft_in": round(ft_per_in, 1), "place_rotation": round(rotation, 1)})
+            tally["from coordinates"] = tally.get("from coordinates", 0) + 1
+            write_placement(image, tfw, wf, info)
+            placed_now.add(pid)
+            if pictures:
+                draw_check(image, pid, wf, streets, "from coordinates", ft_per_in, rotation)
             save_manifest(rows, columns)
             continue
         t = time.time()

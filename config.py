@@ -96,6 +96,21 @@ HIGHWAY_LABEL_WORDS = {}
 # name in title blocks). Example: ["ADAMS", "SPRINGFIELD"]
 EXTRA_PLACE_WORDS = []
 
+# Coordinate systems a sheet's grid ticks / coordinate labels might be in
+# (EPSG/WKID, name). Step 05b tries each, converting old datums (NAD 27 ->
+# NAD 83 with NADCON), and keeps the one that lands in the project area.
+# These are New York's; replace with your state's zones.
+COORDINATE_SYSTEMS = [
+    (32017, "NAD 27 New York West (US ft)"),
+    (32016, "NAD 27 New York Central (US ft)"),
+    (32015, "NAD 27 New York East (US ft)"),
+    (2262, "NAD 83 New York West (US ft)"),
+    (2261, "NAD 83 New York Central (US ft)"),
+    (2260, "NAD 83 New York East (US ft)"),
+    (26718, "NAD 27 UTM zone 18N (m)"),
+    (26918, "NAD 83 UTM zone 18N (m)"),
+]
+
 # Text removed from sheet names to make them shorter in the review map.
 # Example: ["PROJECT_123_", "_Utility_Records"]
 SHORT_NAME_REMOVE = []
