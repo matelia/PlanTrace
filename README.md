@@ -55,6 +55,10 @@ In the Python Command Prompt, from the PlanTrace folder:
 5. `python scripts\06_locate_plans.py`: suggests where each sheet goes.
 6. `python scripts\07_place_plans.py`: places every sheet and fine-tunes it against the aerial.
 7. `python scripts\08_make_review_map.py` (with ArcGIS Pro closed): adds a **Placement Review** map to your ArcGIS project.
+8. Optional, after reviewing:
+   - `python scripts\09_export_for_arcmap.py`: packages the results for an office that only has **ArcMap** (add `--test` for a 3-sheet trial). See [ARCMAP.md](ARCMAP.md) for the ArcMap checklist and a 15-minute office test.
+   - `python scripts\10_contacts_and_requests.py`: reads 811 design tickets (member utilities, contacts, phones) and printed emails, works out what each owner should be asked for (a GIS/CAD file for sheets that couldn't be placed, missing dates, scales or datum, records from members who sent nothing), and writes one **draft** per owner. Nothing is ever sent.
+   - `python scripts\11_utility_knowledge.py`: a table, shared across projects, of what each owner's records are like per decade (file kinds, datums written or proven by coordinates, scales, placement results, review verdicts). Observations only, each with the sheets it came from.
 
 Steps 5–7 are also available **inside ArcGIS Pro** as a toolbox: **Catalog pane → right-click Toolboxes → Add Toolbox → `PlanTrace.pyt`**.
 
@@ -104,7 +108,7 @@ This repository contains **no plan sheets**. Any sample data used with it is pub
 ```
 config.py              settings (the only file you normally edit)
 PlanTrace.pyt          ArcGIS Pro toolbox (steps 06-08)
-scripts\               the steps, 00-08, run in order
+scripts\               the steps, 00-11, run in order
 plantrace\             the shared code:
   read.py                page loading, straightening, OCR, street-name matching
   vision.py              local vision model client (Ollama)
@@ -115,7 +119,9 @@ plantrace\             the shared code:
   refine.py              fine-tuning against the aerial photo
   georef.py              writing positions into images; georeferenced PDFs
   review.py              check pictures and see-through linework overlays
+  records.py             utility owners, 811 design tickets, printed emails, years from dates
 WORKFLOW.md            the engineer's review -> georeference -> trace -> tag checklist
+ARCMAP.md              using the results in ArcMap, and an office test
 docs\HOW_IT_WORKS.md   method, results and lessons
 sample_data\           where to find public sample plans (no plans included)
 CHANGELOG.md           what changed in each version

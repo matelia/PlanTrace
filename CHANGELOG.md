@@ -10,6 +10,10 @@ All notable changes to PlanTrace. A new entry is added whenever a working step i
   - Reads grid-tick and coordinate labels with their position on the page. With enough labels, the sheet is placed from its own coordinates: each system in `config.COORDINATE_SYSTEMS` is tried (NAD 27 converted to NAD 83 with NADCON), and the one that lands in the project area is the datum, even when the sheet doesn't name it.
   - On the test project, a sewer plan with no datum written was found to be in NAD 27 State Plane and placed from its coordinates (it had been placed wrong by line fitting).
 - Placement priority: the PDF's own georeferencing, then the sheet's coordinates, then fitting to the streets. New review-map group "from coordinates".
+- **ArcMap offices** (new step 09, `ARCMAP.md`): packages the geodatabase, placed sheets and see-through linework in one folder that ArcMap 10.x opens directly, with a checklist and a 15-minute office test (`--test` makes a 3-sheet trial package).
+- **Contacts and request drafts** (new step 10, `plantrace/records.py`): reads 811 design tickets (member utilities, contact names, phones) and printed emails, flags automatic senders that nobody reads, and works out per owner what to ask for: a GIS/CAD file for sheets that couldn't be placed or were reviewed wrong, the data behind GIS screenshots, missing dates or scales, the datum, and records from ticket members who sent nothing. Writes a contacts list (with the page each contact came from), a summary and one draft per owner. Nothing is sent.
+- **Utility knowledge table** (new step 11): per owner and decade, what was seen on the sheets: file kinds, datums written or proven by coordinates, scales, firms, placement results and review verdicts. Observations only, each listing its evidence sheets; shared across projects.
+- Dates: map and grid numbers (e.g. 1945.11) are no longer read as years.
 - Safer review data: the footprint layer is rebuilt under a temporary name and swapped in only when complete, and review verdicts are backed up to `review_backup.csv` before every rebuild.
 
 ## v0.1.0 — first public version

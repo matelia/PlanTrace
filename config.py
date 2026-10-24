@@ -116,6 +116,26 @@ COORDINATE_SYSTEMS = [
 SHORT_NAME_REMOVE = []
 
 # ---------------------------------------------------------------------------
+# 6. Who owns what (steps 10 and 11)
+# ---------------------------------------------------------------------------
+# Project name used in the request drafts (step 10).
+PROJECT_TITLE = "My project"
+
+# How to tell which utility owner a plan file came from.
+#   (text in the PDF/scan file name, owner name, text that names the same
+#    owner in an 811 design ticket's member list, or None)
+# The first match wins. Files that match nothing are grouped by file name.
+# Example:
+#     UTILITY_OWNERS = [
+#         ("Water", "County Water Authority", "WATER AUTHORITY"),
+#         ("Gas", "Example Gas Co.", "EXAMPLE GAS"),
+#         ("Design Ticket", "811 design ticket", None),
+#     ]
+UTILITY_OWNERS = [
+    ("Design Ticket", "811 design ticket", None),
+]
+
+# ---------------------------------------------------------------------------
 # Everything below is calculated from the settings above. No need to edit.
 # ---------------------------------------------------------------------------
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
